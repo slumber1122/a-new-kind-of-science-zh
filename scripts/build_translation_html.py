@@ -205,19 +205,52 @@ def build(output_path: Path, embed_images: bool) -> None:
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light">
+  <meta name="color-scheme" content="dark light">
   <title>一种新科学 - 中文翻译合订版</title>
+  <script>
+    try {{
+      document.documentElement.dataset.theme = localStorage.getItem('nks-theme') === 'light' ? 'light' : 'dark';
+    }} catch (error) {{
+      document.documentElement.dataset.theme = 'dark';
+    }}
+  </script>
   <style>
     :root {{
+      color-scheme: dark;
+      --paper: #151715;
+      --surface: #1d201e;
+      --surface-raised: #252925;
+      --ink: #ece9e1;
+      --muted: #a8afa9;
+      --line: #373c38;
+      --line-soft: rgba(168, 175, 169, .2);
+      --accent: #ef7a62;
+      --accent-cool: #78bdb3;
+      --code: #222724;
+      --quote: #c2c7c2;
+      --mobile-surface: rgba(29, 32, 30, .96);
+      --image-outline: rgba(255, 255, 255, .15);
+      --font-reading: "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", "STSong", "SimSun", serif;
+      --font-ui: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", sans-serif;
+      --font-latin: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      --sidebar-width: 292px;
+    }}
+    :root[data-theme="light"] {{
+      color-scheme: light;
       --paper: #fbfbfa;
       --surface: #f1f3f4;
-      --ink: #202124;
-      --muted: #697077;
-      --line: #d8dcdf;
-      --accent: #9d3027;
-      --accent-cool: #1d6467;
-      --code: #eef0f1;
-      --sidebar-width: 292px;
+      --surface-raised: #e4e7e5;
+      --ink: #202321;
+      --muted: #68706b;
+      --line: #d8dcda;
+      --line-soft: rgba(104, 112, 107, .2);
+      --accent: #a33b2f;
+      --accent-cool: #236a68;
+      --code: #eef0ef;
+      --quote: #505853;
+      --mobile-surface: rgba(251, 251, 250, .96);
+      --image-outline: rgba(32, 35, 33, .12);
     }}
     * {{ box-sizing: border-box; }}
     html {{ scroll-behavior: smooth; scroll-padding-top: 24px; }}
@@ -225,11 +258,14 @@ def build(output_path: Path, embed_images: bool) -> None:
       margin: 0;
       color: var(--ink);
       background: var(--paper);
-      font-family: "Songti SC", "STSong", "Noto Serif CJK SC", "Source Han Serif SC", serif;
+      font-family: var(--font-reading);
       font-size: 18px;
       line-height: 1.95;
       letter-spacing: 0;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
     }}
+    ::selection {{ color: var(--paper); background: var(--accent); }}
     a {{ color: var(--accent-cool); text-decoration-thickness: 1px; text-underline-offset: 3px; }}
     .progress {{
       position: fixed;
@@ -250,25 +286,69 @@ def build(output_path: Path, embed_images: bool) -> None:
     }}
     .book-name {{
       margin: 0;
-      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: var(--font-ui);
       font-size: 20px;
-      font-weight: 700;
+      font-weight: 650;
       line-height: 1.4;
     }}
-    .book-author {{ margin: 6px 0 22px; color: var(--muted); font-size: 14px; }}
+    .book-author {{
+      margin: 6px 0 18px;
+      color: var(--muted);
+      font-family: var(--font-latin);
+      font-size: 14px;
+    }}
+    .theme-control {{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-family: var(--font-ui);
+      font-size: 12px;
+      line-height: 1;
+    }}
+    .theme-toggle {{
+      appearance: none;
+      position: relative;
+      width: 36px;
+      height: 20px;
+      flex: 0 0 auto;
+      margin: 0;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface-raised);
+      cursor: pointer;
+    }}
+    .theme-toggle::after {{
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: transform .18s ease, background .18s ease;
+    }}
+    .theme-toggle:checked::after {{
+      transform: translateX(16px);
+      background: var(--accent);
+    }}
+    .theme-toggle:focus-visible {{ outline: 2px solid var(--accent-cool); outline-offset: 3px; }}
     .scope {{
       margin: 0 0 24px;
       padding: 12px 0;
       color: var(--muted);
       border-block: 1px solid var(--line);
-      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: var(--font-ui);
       font-size: 12px;
       line-height: 1.65;
     }}
     .toc-label {{
       margin: 0 0 8px;
       color: var(--muted);
-      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: var(--font-ui);
       font-size: 12px;
       font-weight: 700;
     }}
@@ -277,12 +357,12 @@ def build(output_path: Path, embed_images: bool) -> None:
       display: block;
       padding: 7px 0;
       color: var(--ink);
-      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: var(--font-ui);
       font-size: 14px;
       line-height: 1.5;
       text-decoration: none;
     }}
-    .toc-group {{ border-bottom: 1px solid rgba(216, 220, 223, .7); }}
+    .toc-group {{ border-bottom: 1px solid var(--line-soft); }}
     .toc-group summary {{ cursor: pointer; color: var(--muted); }}
     .toc-group summary::marker {{ color: var(--muted); font-size: 10px; }}
     .toc-group summary a {{ display: inline; }}
@@ -290,7 +370,7 @@ def build(output_path: Path, embed_images: bool) -> None:
       display: block;
       padding: 5px 0 5px 17px;
       color: var(--muted);
-      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: var(--font-ui);
       font-size: 12px;
       line-height: 1.45;
       text-decoration: none;
@@ -314,19 +394,25 @@ def build(output_path: Path, embed_images: bool) -> None:
     .part-label {{
       margin: 0 0 14px;
       color: var(--accent);
-      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: var(--font-ui);
       font-size: 12px;
       font-weight: 700;
     }}
     .title-page h1 {{
       max-width: 680px;
       margin: 0;
-      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: var(--font-ui);
       font-size: 52px;
+      font-weight: 650;
       line-height: 1.2;
       letter-spacing: 0;
     }}
-    .title-page .subtitle {{ margin: 20px 0 0; color: var(--muted); font-size: 22px; }}
+    .title-page .subtitle {{
+      margin: 20px 0 0;
+      color: var(--muted);
+      font-family: var(--font-latin);
+      font-size: 22px;
+    }}
     .title-page .author {{ margin: 54px 0 0; font-size: 17px; }}
     .title-page .edition {{ margin: 8px 0 0; color: var(--muted); font-size: 14px; }}
     .mobile-toc {{ display: none; }}
@@ -339,13 +425,14 @@ def build(output_path: Path, embed_images: bool) -> None:
     .part-header {{ margin-bottom: 54px; }}
     .part-header h1 {{
       margin: 0;
-      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: var(--font-ui);
       font-size: 36px;
+      font-weight: 650;
       line-height: 1.35;
       letter-spacing: 0;
     }}
     h2, h3, h4 {{
-      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: var(--font-ui);
       letter-spacing: 0;
       scroll-margin-top: 24px;
     }}
@@ -358,7 +445,7 @@ def build(output_path: Path, embed_images: bool) -> None:
       margin: 44px 0 24px;
       padding-top: 12px;
       border-top: 1px solid var(--line);
-      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: var(--font-ui);
       font-size: 12px;
       line-height: 1.4;
     }}
@@ -373,11 +460,12 @@ def build(output_path: Path, embed_images: bool) -> None:
       height: auto;
       margin: 0 auto;
       background: #fff;
+      box-shadow: 0 0 0 1px var(--image-outline);
     }}
     figcaption {{
       margin-top: 10px;
       color: var(--muted);
-      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: var(--font-ui);
       font-size: 12px;
       line-height: 1.5;
     }}
@@ -387,7 +475,7 @@ def build(output_path: Path, embed_images: bool) -> None:
       padding: .08em .3em;
       border-radius: 3px;
       background: var(--code);
-      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-family: var(--font-mono);
       font-size: .86em;
     }}
     pre {{
@@ -404,14 +492,14 @@ def build(output_path: Path, embed_images: bool) -> None:
     blockquote {{
       margin: 28px 0;
       padding: 4px 0 4px 22px;
-      color: #4e565d;
+      color: var(--quote);
       border-left: 3px solid var(--line);
     }}
     .back-to-top {{
       display: inline-block;
       margin-top: 56px;
       color: var(--muted);
-      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-family: var(--font-ui);
       font-size: 13px;
       text-decoration: none;
     }}
@@ -424,11 +512,12 @@ def build(output_path: Path, embed_images: bool) -> None:
         top: 0;
         z-index: 10;
         border-bottom: 1px solid var(--line);
-        background: rgba(251, 251, 250, .96);
-        font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+        background: var(--mobile-surface);
+        font-family: var(--font-ui);
       }}
       .mobile-toc summary {{ padding: 12px 20px; cursor: pointer; font-size: 14px; font-weight: 700; }}
       .mobile-toc nav {{ max-height: 62vh; overflow-y: auto; padding: 4px 20px 16px; }}
+      .mobile-toc .theme-control {{ margin-block: 10px 18px; }}
       .mobile-toc .toc-part {{ border-bottom: 1px solid var(--line); }}
       .title-page {{ min-height: 82vh; padding-top: 56px; }}
       .title-page h1 {{ font-size: 40px; }}
@@ -447,8 +536,16 @@ def build(output_path: Path, embed_images: bool) -> None:
     }}
     @media print {{
       @page {{ size: A4; margin: 18mm 17mm 20mm; }}
+      :root {{
+        --paper: #fff;
+        --ink: #111;
+        --muted: #555;
+        --line: #ccc;
+        --code: #f2f2f2;
+        --quote: #444;
+      }}
       body {{ background: #fff; font-size: 11pt; line-height: 1.75; }}
-      .sidebar, .mobile-toc, .progress, .back-to-top {{ display: none !important; }}
+      .sidebar, .mobile-toc, .progress, .back-to-top, .theme-control {{ display: none !important; }}
       .reader {{ margin: 0; }}
       .title-page {{ min-height: 0; height: 240mm; border: 0; page-break-after: always; }}
       .book-part {{ max-width: none; padding: 0; border: 0; }}
@@ -466,6 +563,7 @@ def build(output_path: Path, embed_images: bool) -> None:
   <aside class="sidebar" aria-label="全书目录">
     <p class="book-name">一种新科学</p>
     <p class="book-author">Stephen Wolfram</p>
+    <label class="theme-control"><span>浅色主题</span><input class="theme-toggle" type="checkbox" role="switch" aria-label="切换浅色主题"></label>
     <p class="scope">当前译稿范围：前言、第 1-12 章，以及注释至原 PDF 第 982 页。原书后续注释与索引尚未收入。</p>
     <p class="toc-label">目录</p>
     <nav>{desktop_toc}</nav>
@@ -473,7 +571,7 @@ def build(output_path: Path, embed_images: bool) -> None:
   <main class="reader">
     <details class="mobile-toc">
       <summary>目录与译稿范围</summary>
-      <nav><p class="scope">前言、第 1-12 章，以及注释至原 PDF 第 982 页。</p>{mobile_toc}</nav>
+      <nav><label class="theme-control"><span>浅色主题</span><input class="theme-toggle" type="checkbox" role="switch" aria-label="切换浅色主题"></label><p class="scope">前言、第 1-12 章，以及注释至原 PDF 第 982 页。</p>{mobile_toc}</nav>
     </details>
     <header class="title-page">
       <p class="eyebrow">STEPHEN WOLFRAM</p>
@@ -488,6 +586,19 @@ def build(output_path: Path, embed_images: bool) -> None:
     const progress = document.querySelector('.progress');
     const partLinks = [...document.querySelectorAll('.sidebar a[href^="#chapter-"], .sidebar a[href="#preface"], .sidebar a[href="#notes"]')];
     const parts = [...document.querySelectorAll('.book-part')];
+    const themeToggles = [...document.querySelectorAll('.theme-toggle')];
+    const applyTheme = (theme, persist = false) => {{
+      document.documentElement.dataset.theme = theme;
+      themeToggles.forEach(toggle => {{ toggle.checked = theme === 'light'; }});
+      document.querySelector('meta[name="color-scheme"]').content = theme === 'light' ? 'light dark' : 'dark light';
+      if (persist) {{
+        try {{ localStorage.setItem('nks-theme', theme); }} catch (error) {{}}
+      }}
+    }};
+    applyTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
+    themeToggles.forEach(toggle => {{
+      toggle.addEventListener('change', () => applyTheme(toggle.checked ? 'light' : 'dark', true));
+    }});
     const updateProgress = () => {{
       const scrollable = document.documentElement.scrollHeight - window.innerHeight;
       const ratio = scrollable > 0 ? window.scrollY / scrollable : 0;
