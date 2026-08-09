@@ -829,6 +829,11 @@ def build(output_path: Path, embed_images: bool) -> None:
         }}
       }});
     }});
+    const initialSearchQuery = searchInputs.find(input => input.value)?.value || '';
+    if (initialSearchQuery) {{
+      searchInputs.forEach(input => {{ input.value = initialSearchQuery; }});
+      renderSearchResults(initialSearchQuery);
+    }}
     const updateProgress = () => {{
       const scrollable = document.documentElement.scrollHeight - window.innerHeight;
       const ratio = scrollable > 0 ? window.scrollY / scrollable : 0;
