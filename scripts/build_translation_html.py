@@ -161,7 +161,9 @@ def toc_html(parts: list[dict[str, object]], mobile: bool = False) -> str:
             )
             items.append(
                 '<details class="toc-group">'
-                f'<summary><a href="#{anchor}">{title}</a></summary>{links}</details>'
+                f'<summary>{title}</summary>'
+                f'<a class="toc-chapter-link" href="#{anchor}" aria-label="{title}，本章首页">本章首页</a>'
+                f'{links}</details>'
             )
         else:
             items.append(f'<a class="toc-part" href="#{anchor}">{title}</a>')
@@ -473,8 +475,7 @@ def build(output_path: Path, embed_images: bool) -> None:
       font-size: 12px;
       font-weight: 700;
     }}
-    .toc-part,
-    .toc-group summary a {{
+    .toc-part {{
       display: block;
       padding: 7px 0;
       color: var(--ink);
@@ -484,9 +485,16 @@ def build(output_path: Path, embed_images: bool) -> None:
       text-decoration: none;
     }}
     .toc-group {{ border-bottom: 1px solid var(--line-soft); }}
-    .toc-group summary {{ cursor: pointer; color: var(--muted); }}
+    .toc-group summary {{
+      padding: 7px 0;
+      color: var(--ink);
+      font-family: var(--font-ui);
+      font-size: 14px;
+      line-height: 1.5;
+      cursor: pointer;
+    }}
     .toc-group summary::marker {{ color: var(--muted); font-size: 10px; }}
-    .toc-group summary a {{ display: inline; }}
+    .toc-chapter-link,
     .toc-sub {{
       display: block;
       padding: 5px 0 5px 17px;
@@ -496,10 +504,12 @@ def build(output_path: Path, embed_images: bool) -> None:
       line-height: 1.45;
       text-decoration: none;
     }}
+    .toc-chapter-link {{ color: var(--accent-cool); font-weight: 650; }}
     .toc-part:hover,
     .toc-group a:hover,
     .toc-part.active,
-    .toc-group summary a.active {{ color: var(--accent); }}
+    .toc-chapter-link.active,
+    .toc-group:has(.toc-chapter-link.active) summary {{ color: var(--accent); }}
     .reader {{ margin-left: 0; }}
     .title-page {{
       min-height: 88vh;
