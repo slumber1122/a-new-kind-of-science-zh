@@ -192,6 +192,11 @@ def build(output_path: Path, embed_images: bool) -> None:
 
     desktop_toc = toc_html(parts)
     mobile_toc = toc_html(parts, mobile=True)
+    search_panel = """<div class="search-panel">
+      <label class="search-label"><span>全文检索</span><input class="book-search" type="search" placeholder="输入关键词" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="全文检索"></label>
+      <p class="search-status" aria-live="polite"></p>
+      <div class="search-results"></div>
+    </div>"""
     content = "".join(
         f'<section class="book-part" id="{part["id"]}">'
         f'<header class="part-header"><p class="part-label">A New Kind of Science</p>'
@@ -230,6 +235,7 @@ def build(output_path: Path, embed_images: bool) -> None:
       --quote: #c2c7c2;
       --mobile-surface: rgba(29, 32, 30, .96);
       --image-outline: rgba(255, 255, 255, .15);
+      --search-hit: rgba(239, 122, 98, .2);
       --font-reading: "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", "STSong", "SimSun", serif;
       --font-ui: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans CJK SC", "Source Han Sans SC", "Microsoft YaHei", sans-serif;
       --font-latin: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
@@ -251,6 +257,7 @@ def build(output_path: Path, embed_images: bool) -> None:
       --quote: #505853;
       --mobile-surface: rgba(251, 251, 250, .96);
       --image-outline: rgba(32, 35, 33, .12);
+      --search-hit: rgba(163, 59, 47, .14);
     }}
     * {{ box-sizing: border-box; }}
     html {{ scroll-behavior: smooth; scroll-padding-top: 24px; }}
@@ -336,6 +343,86 @@ def build(output_path: Path, embed_images: bool) -> None:
       background: var(--accent);
     }}
     .theme-toggle:focus-visible {{ outline: 2px solid var(--accent-cool); outline-offset: 3px; }}
+    .search-panel {{
+      margin: 0 0 20px;
+      font-family: var(--font-ui);
+    }}
+    .search-label {{
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      line-height: 1.4;
+    }}
+    .book-search {{
+      display: block;
+      width: 100%;
+      height: 38px;
+      margin-top: 8px;
+      padding: 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      color: var(--ink);
+      background: var(--paper);
+      font: 14px/1.4 var(--font-ui);
+      letter-spacing: 0;
+    }}
+    .book-search::placeholder {{ color: var(--muted); opacity: .85; }}
+    .book-search:focus {{ border-color: var(--accent-cool); outline: 2px solid color-mix(in srgb, var(--accent-cool) 35%, transparent); outline-offset: 1px; }}
+    .search-status {{
+      display: none;
+      margin: 9px 0 5px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.45;
+      text-align: left;
+    }}
+    .search-results {{
+      display: none;
+      max-height: 36vh;
+      overflow-y: auto;
+      border-bottom: 1px solid var(--line);
+    }}
+    .search-panel.has-query .search-status,
+    .search-panel.has-query .search-results {{ display: block; }}
+    .search-result {{
+      display: block;
+      width: 100%;
+      margin: 0;
+      padding: 10px 0;
+      border: 0;
+      border-top: 1px solid var(--line-soft);
+      color: var(--ink);
+      background: transparent;
+      font-family: var(--font-ui);
+      letter-spacing: 0;
+      text-align: left;
+      cursor: pointer;
+    }}
+    .search-result:hover,
+    .search-result:focus-visible {{ color: var(--accent-cool); background: var(--search-hit); outline: none; }}
+    .search-result-title,
+    .search-result-snippet {{ display: block; }}
+    .search-result-title {{
+      margin-bottom: 4px;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 650;
+      line-height: 1.35;
+    }}
+    .search-result-snippet {{
+      font-size: 12px;
+      line-height: 1.55;
+    }}
+    .search-result mark {{
+      color: inherit;
+      background: var(--search-hit);
+    }}
+    .search-target {{ animation: search-pulse 2.2s ease-out; }}
+    @keyframes search-pulse {{
+      0%, 35% {{ background: var(--search-hit); outline: 5px solid var(--search-hit); }}
+      100% {{ background: transparent; outline: 0 solid transparent; }}
+    }}
     .scope {{
       margin: 0 0 24px;
       padding: 12px 0;
@@ -518,6 +605,8 @@ def build(output_path: Path, embed_images: bool) -> None:
       .mobile-toc summary {{ padding: 12px 20px; cursor: pointer; font-size: 14px; font-weight: 700; }}
       .mobile-toc nav {{ max-height: 62vh; overflow-y: auto; padding: 4px 20px 16px; }}
       .mobile-toc .theme-control {{ margin-block: 10px 18px; }}
+      .mobile-toc .search-panel {{ margin-bottom: 18px; }}
+      .mobile-toc .search-results {{ max-height: 30vh; }}
       .mobile-toc .toc-part {{ border-bottom: 1px solid var(--line); }}
       .title-page {{ min-height: 82vh; padding-top: 56px; }}
       .title-page h1 {{ font-size: 40px; }}
@@ -534,6 +623,10 @@ def build(output_path: Path, embed_images: bool) -> None:
       p {{ text-align: left; }}
       pre {{ margin-inline: -8px; padding: 16px 14px; font-size: 12px; }}
     }}
+    @media (prefers-reduced-motion: reduce) {{
+      html {{ scroll-behavior: auto; }}
+      .search-target {{ animation: none; background: var(--search-hit); }}
+    }}
     @media print {{
       @page {{ size: A4; margin: 18mm 17mm 20mm; }}
       :root {{
@@ -545,7 +638,7 @@ def build(output_path: Path, embed_images: bool) -> None:
         --quote: #444;
       }}
       body {{ background: #fff; font-size: 11pt; line-height: 1.75; }}
-      .sidebar, .mobile-toc, .progress, .back-to-top, .theme-control {{ display: none !important; }}
+      .sidebar, .mobile-toc, .progress, .back-to-top, .theme-control, .search-panel {{ display: none !important; }}
       .reader {{ margin: 0; }}
       .title-page {{ min-height: 0; height: 240mm; border: 0; page-break-after: always; }}
       .book-part {{ max-width: none; padding: 0; border: 0; }}
@@ -564,6 +657,7 @@ def build(output_path: Path, embed_images: bool) -> None:
     <p class="book-name">一种新科学</p>
     <p class="book-author">Stephen Wolfram</p>
     <label class="theme-control"><span>浅色主题</span><input class="theme-toggle" type="checkbox" role="switch" aria-label="切换浅色主题"></label>
+    {search_panel}
     <p class="scope">当前译稿范围：前言、第 1-12 章，以及注释至原 PDF 第 982 页。原书后续注释与索引尚未收入。</p>
     <p class="toc-label">目录</p>
     <nav>{desktop_toc}</nav>
@@ -571,7 +665,7 @@ def build(output_path: Path, embed_images: bool) -> None:
   <main class="reader">
     <details class="mobile-toc">
       <summary>目录与译稿范围</summary>
-      <nav><label class="theme-control"><span>浅色主题</span><input class="theme-toggle" type="checkbox" role="switch" aria-label="切换浅色主题"></label><p class="scope">前言、第 1-12 章，以及注释至原 PDF 第 982 页。</p>{mobile_toc}</nav>
+      <nav><label class="theme-control"><span>浅色主题</span><input class="theme-toggle" type="checkbox" role="switch" aria-label="切换浅色主题"></label>{search_panel}<p class="scope">前言、第 1-12 章，以及注释至原 PDF 第 982 页。</p>{mobile_toc}</nav>
     </details>
     <header class="title-page">
       <p class="eyebrow">STEPHEN WOLFRAM</p>
@@ -598,6 +692,142 @@ def build(output_path: Path, embed_images: bool) -> None:
     applyTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
     themeToggles.forEach(toggle => {{
       toggle.addEventListener('change', () => applyTheme(toggle.checked ? 'light' : 'dark', true));
+    }});
+    const searchInputs = [...document.querySelectorAll('.book-search')];
+    const searchPanels = [...document.querySelectorAll('.search-panel')];
+    const searchLimit = 80;
+    let searchIndex = null;
+    let searchTimer = null;
+    const normalizeSearchText = value => value.toLocaleLowerCase('zh-CN').replace(/\\s+/g, ' ').trim();
+    const buildSearchIndex = () => {{
+      let currentPage = '';
+      let locationNumber = 0;
+      const records = [];
+      const nodes = document.querySelectorAll('.book-part .pdf-page, .book-part h1, .book-part h2, .book-part h3, .book-part h4, .book-part p, .book-part li, .book-part figcaption, .book-part pre');
+      nodes.forEach(element => {{
+        if (element.classList.contains('pdf-page')) {{
+          currentPage = element.dataset.page || '';
+          return;
+        }}
+        const text = element.innerText.replace(/\\s+/g, ' ').trim();
+        if (text.length < 2) return;
+        const part = element.closest('.book-part');
+        const chapter = part?.querySelector('.part-header h1')?.textContent.trim() || '';
+        if (!element.id) {{
+          locationNumber += 1;
+          element.id = `search-location-${{locationNumber}}`;
+        }}
+        records.push({{
+          element,
+          text,
+          normalized: normalizeSearchText(text),
+          chapter,
+          page: currentPage
+        }});
+      }});
+      return records;
+    }};
+    const appendHighlightedText = (container, text, terms) => {{
+      const normalized = text.toLocaleLowerCase('zh-CN');
+      let cursor = 0;
+      while (cursor < text.length) {{
+        let nextIndex = -1;
+        let nextTerm = '';
+        terms.forEach(term => {{
+          const index = normalized.indexOf(term, cursor);
+          if (index !== -1 && (nextIndex === -1 || index < nextIndex)) {{
+            nextIndex = index;
+            nextTerm = term;
+          }}
+        }});
+        if (nextIndex === -1) {{
+          container.append(document.createTextNode(text.slice(cursor)));
+          break;
+        }}
+        if (nextIndex > cursor) container.append(document.createTextNode(text.slice(cursor, nextIndex)));
+        const mark = document.createElement('mark');
+        mark.textContent = text.slice(nextIndex, nextIndex + nextTerm.length);
+        container.append(mark);
+        cursor = nextIndex + nextTerm.length;
+      }}
+    }};
+    const resultSnippet = (record, terms) => {{
+      const firstPosition = Math.min(...terms.map(term => record.normalized.indexOf(term)).filter(index => index >= 0));
+      const start = Math.max(0, firstPosition - 42);
+      const end = Math.min(record.text.length, firstPosition + 96);
+      return `${{start > 0 ? '…' : ''}}${{record.text.slice(start, end)}}${{end < record.text.length ? '…' : ''}}`;
+    }};
+    const jumpToSearchResult = (record, panel) => {{
+      panel.closest('.mobile-toc')?.removeAttribute('open');
+      history.replaceState(null, '', `#${{record.element.id}}`);
+      const previousScrollBehavior = document.documentElement.style.scrollBehavior;
+      document.documentElement.style.scrollBehavior = 'auto';
+      record.element.scrollIntoView({{ block: 'center' }});
+      document.documentElement.style.scrollBehavior = previousScrollBehavior;
+      record.element.classList.remove('search-target');
+      void record.element.offsetWidth;
+      record.element.classList.add('search-target');
+      window.setTimeout(() => record.element.classList.remove('search-target'), 2300);
+    }};
+    const renderSearchResults = query => {{
+      const normalizedQuery = normalizeSearchText(query);
+      const terms = normalizedQuery.split(' ').filter(Boolean);
+      searchPanels.forEach(panel => panel.classList.toggle('has-query', terms.length > 0));
+      if (!terms.length) {{
+        searchPanels.forEach(panel => {{
+          panel.querySelector('.search-status').textContent = '';
+          panel.querySelector('.search-results').replaceChildren();
+        }});
+        return;
+      }}
+      if (!searchIndex) searchIndex = buildSearchIndex();
+      const matches = searchIndex
+        .filter(record => terms.every(term => record.normalized.includes(term)))
+        .sort((a, b) => {{
+          const aHeading = /^H[1-4]$/.test(a.element.tagName) ? -1000 : 0;
+          const bHeading = /^H[1-4]$/.test(b.element.tagName) ? -1000 : 0;
+          return (aHeading + a.normalized.indexOf(terms[0])) - (bHeading + b.normalized.indexOf(terms[0]));
+        }});
+      const visibleMatches = matches.slice(0, searchLimit);
+      searchPanels.forEach(panel => {{
+        const status = panel.querySelector('.search-status');
+        const results = panel.querySelector('.search-results');
+        status.textContent = matches.length > searchLimit ? `找到 ${{matches.length}} 处，显示前 ${{searchLimit}} 条` : `找到 ${{matches.length}} 处`;
+        results.replaceChildren();
+        if (!matches.length) return;
+        visibleMatches.forEach(record => {{
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'search-result';
+          const title = document.createElement('span');
+          title.className = 'search-result-title';
+          title.textContent = `${{record.chapter}}${{record.page ? ` · PDF 第 ${{record.page}} 页` : ''}}`;
+          const snippet = document.createElement('span');
+          snippet.className = 'search-result-snippet';
+          appendHighlightedText(snippet, resultSnippet(record, terms), terms);
+          button.append(title, snippet);
+          button.addEventListener('click', () => jumpToSearchResult(record, panel));
+          results.append(button);
+        }});
+      }});
+    }};
+    searchInputs.forEach(input => {{
+      input.addEventListener('input', event => {{
+        const query = event.currentTarget.value;
+        searchInputs.forEach(peer => {{ if (peer !== event.currentTarget) peer.value = query; }});
+        window.clearTimeout(searchTimer);
+        searchTimer = window.setTimeout(() => renderSearchResults(query), 90);
+      }});
+      input.addEventListener('keydown', event => {{
+        if (event.key === 'Escape') {{
+          searchInputs.forEach(peer => {{ peer.value = ''; }});
+          renderSearchResults('');
+          event.currentTarget.blur();
+        }} else if (event.key === 'Enter') {{
+          event.preventDefault();
+          event.currentTarget.closest('.search-panel').querySelector('.search-result')?.click();
+        }}
+      }});
     }});
     const updateProgress = () => {{
       const scrollable = document.documentElement.scrollHeight - window.innerHeight;
