@@ -215,8 +215,11 @@ def build(output_path: Path, embed_images: bool) -> None:
   <script>
     try {{
       document.documentElement.dataset.theme = localStorage.getItem('nks-theme') === 'light' ? 'light' : 'dark';
+      const savedSidebar = localStorage.getItem('nks-sidebar');
+      document.documentElement.dataset.sidebar = savedSidebar || (matchMedia('(max-width: 1339px)').matches ? 'collapsed' : 'expanded');
     }} catch (error) {{
       document.documentElement.dataset.theme = 'dark';
+      document.documentElement.dataset.sidebar = matchMedia('(max-width: 1339px)').matches ? 'collapsed' : 'expanded';
     }}
   </script>
   <style>
@@ -285,12 +288,43 @@ def build(output_path: Path, embed_images: bool) -> None:
     .sidebar {{
       position: fixed;
       inset: 0 auto 0 0;
+      z-index: 15;
       width: var(--sidebar-width);
       overflow-y: auto;
       padding: 32px 24px 48px;
       background: var(--surface);
       border-right: 1px solid var(--line);
+      transform: translateX(0);
+      transition: transform .22s ease;
     }}
+    :root[data-sidebar="collapsed"] .sidebar {{
+      pointer-events: none;
+      transform: translateX(-100%);
+    }}
+    .sidebar-toggle {{
+      position: fixed;
+      top: 16px;
+      left: calc(var(--sidebar-width) - 52px);
+      z-index: 30;
+      display: grid;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      color: var(--muted);
+      background: var(--surface-raised);
+      cursor: pointer;
+      transition: left .22s ease, color .18s ease, background .18s ease;
+    }}
+    .sidebar-toggle:hover {{ color: var(--ink); background: var(--surface); }}
+    .sidebar-toggle:focus-visible {{ outline: 2px solid var(--accent-cool); outline-offset: 3px; }}
+    .sidebar-toggle svg {{ width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }}
+    .sidebar-open-icon {{ display: none; }}
+    :root[data-sidebar="collapsed"] .sidebar-toggle {{ left: 16px; }}
+    :root[data-sidebar="collapsed"] .sidebar-close-icon {{ display: none; }}
+    :root[data-sidebar="collapsed"] .sidebar-open-icon {{ display: block; }}
     .book-name {{
       margin: 0;
       font-family: var(--font-ui);
@@ -466,7 +500,7 @@ def build(output_path: Path, embed_images: bool) -> None:
     .toc-group a:hover,
     .toc-part.active,
     .toc-group summary a.active {{ color: var(--accent); }}
-    .reader {{ margin-left: var(--sidebar-width); }}
+    .reader {{ margin-left: 0; }}
     .title-page {{
       min-height: 88vh;
       display: flex;
@@ -591,7 +625,7 @@ def build(output_path: Path, embed_images: bool) -> None:
       text-decoration: none;
     }}
     @media (max-width: 920px) {{
-      .sidebar {{ display: none; }}
+      .sidebar, .sidebar-toggle {{ display: none; }}
       .reader {{ margin-left: 0; }}
       .mobile-toc {{
         display: block;
@@ -625,6 +659,7 @@ def build(output_path: Path, embed_images: bool) -> None:
     }}
     @media (prefers-reduced-motion: reduce) {{
       html {{ scroll-behavior: auto; }}
+      .sidebar, .sidebar-toggle {{ transition: none; }}
       .search-target {{ animation: none; background: var(--search-hit); }}
     }}
     @media print {{
@@ -638,7 +673,7 @@ def build(output_path: Path, embed_images: bool) -> None:
         --quote: #444;
       }}
       body {{ background: #fff; font-size: 11pt; line-height: 1.75; }}
-      .sidebar, .mobile-toc, .progress, .back-to-top, .theme-control, .search-panel {{ display: none !important; }}
+      .sidebar, .sidebar-toggle, .mobile-toc, .progress, .back-to-top, .theme-control, .search-panel {{ display: none !important; }}
       .reader {{ margin: 0; }}
       .title-page {{ min-height: 0; height: 240mm; border: 0; page-break-after: always; }}
       .book-part {{ max-width: none; padding: 0; border: 0; }}
@@ -653,7 +688,11 @@ def build(output_path: Path, embed_images: bool) -> None:
 </head>
 <body id="top">
   <div class="progress" aria-hidden="true"></div>
-  <aside class="sidebar" aria-label="全书目录">
+  <button class="sidebar-toggle" type="button" aria-controls="book-sidebar" aria-expanded="true" aria-label="收起侧边栏" title="收起侧边栏">
+    <svg class="sidebar-close-icon" aria-hidden="true" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></svg>
+    <svg class="sidebar-open-icon" aria-hidden="true" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m14 9 3 3-3 3"/></svg>
+  </button>
+  <aside class="sidebar" id="book-sidebar" aria-label="全书目录">
     <p class="book-name">一种新科学</p>
     <p class="book-author">Stephen Wolfram</p>
     <label class="theme-control"><span>浅色主题</span><input class="theme-toggle" type="checkbox" role="switch" aria-label="切换浅色主题"></label>
@@ -678,9 +717,28 @@ def build(output_path: Path, embed_images: bool) -> None:
   </main>
   <script>
     const progress = document.querySelector('.progress');
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarToggle = document.querySelector('.sidebar-toggle');
     const partLinks = [...document.querySelectorAll('.sidebar a[href^="#chapter-"], .sidebar a[href="#preface"], .sidebar a[href="#notes"]')];
     const parts = [...document.querySelectorAll('.book-part')];
     const themeToggles = [...document.querySelectorAll('.theme-toggle')];
+    const applySidebarState = (state, persist = false) => {{
+      const sidebarState = state === 'collapsed' ? 'collapsed' : 'expanded';
+      const expanded = sidebarState === 'expanded';
+      document.documentElement.dataset.sidebar = sidebarState;
+      sidebar.inert = !expanded;
+      sidebar.setAttribute('aria-hidden', String(!expanded));
+      sidebarToggle.setAttribute('aria-expanded', String(expanded));
+      sidebarToggle.setAttribute('aria-label', expanded ? '收起侧边栏' : '展开侧边栏');
+      sidebarToggle.title = expanded ? '收起侧边栏' : '展开侧边栏';
+      if (persist) {{
+        try {{ localStorage.setItem('nks-sidebar', sidebarState); }} catch (error) {{}}
+      }}
+    }};
+    applySidebarState(document.documentElement.dataset.sidebar);
+    sidebarToggle.addEventListener('click', () => {{
+      applySidebarState(document.documentElement.dataset.sidebar === 'expanded' ? 'collapsed' : 'expanded', true);
+    }});
     const applyTheme = (theme, persist = false) => {{
       document.documentElement.dataset.theme = theme;
       themeToggles.forEach(toggle => {{ toggle.checked = theme === 'light'; }});
